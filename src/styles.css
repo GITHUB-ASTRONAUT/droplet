@@ -922,6 +922,7 @@ body.polar-day .hero {
   font-size: 17px;
   line-height: 1.85;
   color: rgba(226, 232, 240, 0.94);
+  overflow-wrap: break-word;
 }
 .prose h2 {
   margin: 2.2em 0 0.8em;
@@ -936,9 +937,11 @@ body.polar-day .hero {
   font-weight: 400;
 }
 .prose h3 { margin: 1.8em 0 0.7em; font-size: 1.18em; color: var(--ink-strong); }
+.prose h1 { margin: 2.2em 0 0.8em; font-size: 1.6em; font-weight: 700; color: var(--ink-strong); }
+.prose h4, .prose h5, .prose h6 { margin: 1.5em 0 0.6em; font-size: 1.04em; font-weight: 600; color: var(--ink-strong); }
 .prose p { margin: 0 0 1.3em; }
 .prose strong { color: var(--ink-strong); }
-.prose a { border-bottom: 1px solid var(--cold-dim); }
+.prose a { border-bottom: 1px solid var(--cold-dim); overflow-wrap: anywhere; }
 .prose a:hover { border-bottom-color: var(--ink-strong); }
 .prose blockquote {
   margin: 1.6em 0;
@@ -952,6 +955,7 @@ body.polar-day .hero {
   background: rgba(255, 255, 255, 0.06);
   padding: 2px 6px;
   color: var(--cold);
+  overflow-wrap: anywhere;
 }
 .prose pre {
   background: #05070a;
@@ -966,6 +970,54 @@ body.polar-day .hero {
 .prose ul, .prose ol { padding-left: 1.4em; margin: 0 0 1.3em; }
 .prose li { margin: 0.35em 0; }
 .prose li::marker { color: var(--signal); }
+
+/* 表格：markdown 里最容易散架的构件，给它完整的结构 */
+.prose-table {
+  margin: 1.8em 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  overflow-x: auto;
+}
+.prose-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.94em;
+  line-height: 1.6;
+}
+.prose-table th,
+.prose-table td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: top;
+  /* 长词、长仓库名在窄列里允许断开，宁可折行也不撑破正文 */
+  overflow-wrap: break-word;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.prose-table th:last-child,
+.prose-table td:last-child { border-right: 0; }
+.prose-table thead th {
+  font-family: var(--mono);
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: var(--ink-strong);
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--line-strong);
+}
+.prose-table tbody tr:last-child td { border-bottom: 0; }
+.prose-table tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
+body.polar-day .prose-table { background: rgba(255, 255, 255, 0.5); }
+body.polar-day .prose-table thead th { background: rgba(23, 38, 53, 0.06); }
+body.polar-day .prose-table tbody tr:hover { background: rgba(23, 38, 53, 0.035); }
+
+/* 宽表在桌面上比正文略宽，避免多列被挤成竖条；窄屏保持 100% 并横向滚动 */
+@media (min-width: 1080px) {
+  .prose-table { width: min(880px, calc(100vw - 160px)); margin-inline: auto; }
+}
+/* 四列以上的宽表在窄屏保持可用列宽，改为容器内横向滚动 */
+.prose-table:has(th:nth-child(4)) table { min-width: 720px; }
 
 .post__foot {
   margin-top: 64px;

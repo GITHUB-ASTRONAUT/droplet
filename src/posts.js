@@ -28,6 +28,10 @@ const modules = import.meta.glob('../content/posts/*.md', {
 
 const md = new MarkdownIt({ html: true, linkify: true, typographer: false })
 
+/* 表格外面套一层横向滚动容器：窄屏放不下时滚动，而不是把正文撑破 */
+md.renderer.rules.table_open = () => '<div class="prose-table">\n<table>\n'
+md.renderer.rules.table_close = () => '</table>\n</div>\n'
+
 /** 极简 frontmatter 解析：key: value / 引号字符串 / [a, b] 数组 */
 function parseFrontMatter(raw) {
   const data = {}

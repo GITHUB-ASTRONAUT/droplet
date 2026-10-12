@@ -33,7 +33,9 @@
           "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 
   --shell-x: clamp(20px, 5vw, 72px);
+  /* 正文列宽：封面等构件要跟正文同宽，就得用同一个字号去解释 ch */
   --measure: 68ch;
+  --prose-size: 17px;
 
   --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -82,7 +84,8 @@ img { max-width: 100%; display: block; }
 /* ============================================================
    极昼模式：三体世界的三日凌空
    ============================================================ */
-.polar-toggle {
+.polar-toggle,
+.post__md {
   position: relative;
   z-index: 2;
   display: inline-flex;
@@ -101,9 +104,26 @@ img { max-width: 100%; display: block; }
   transition: color 0.3s var(--ease), border-color 0.3s var(--ease), background 0.3s var(--ease);
 }
 .polar-toggle:hover,
-.polar-toggle[aria-pressed="true"] {
+.polar-toggle[aria-pressed="true"],
+.post__md:hover,
+.post__md:focus-visible {
   color: var(--ink-strong);
   border-color: var(--signal);
+}
+
+/* 复制反馈统一走站点的信号红：绿色在这套配色里太跳 */
+.post__md.is-done {
+  opacity: 1;
+  color: var(--signal);
+  border-color: var(--signal-dim);
+}
+.post__md.is-done,
+.post__md.is-failed {
+  background: rgba(255, 69, 58, 0.14);
+}
+.post__md.is-failed {
+  color: var(--signal);
+  border-color: var(--signal-dim);
 }
 .polar-toggle__sun {
   width: 12px;
@@ -175,6 +195,22 @@ body.polar-day .polar-toggle:hover,
 body.polar-day .polar-toggle[aria-pressed="true"] {
   color: #09141f;
   border-color: var(--signal);
+}
+body.polar-day .post__md {
+  color: #172635;
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(23, 38, 53, 0.28);
+}
+body.polar-day .post__md:hover,
+body.polar-day .post__md:focus-visible {
+  color: #09141f;
+  border-color: var(--signal);
+}
+body.polar-day .post__md.is-done,
+body.polar-day .post__md.is-failed {
+  color: var(--signal);
+  border-color: var(--signal-dim);
+  background: rgba(195, 54, 45, 0.13);
 }
 
 /* HUD 通用：等宽小字 */
@@ -867,6 +903,12 @@ body.polar-day .hero {
   gap: 20px;
 }
 
+.post__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .post__back {
   font-family: var(--mono);
   font-size: 11px;
@@ -903,12 +945,15 @@ body.polar-day .hero {
 
 .post__cover {
   display: block;
-  margin: 0 0 44px;
+  /* 收窄到正文列宽：横幅铺满整个 shell 会压过下面的正文 */
+  font-size: var(--prose-size);   /* 和 .prose 同字号，68ch 才对得齐 */
+  max-width: var(--measure);
+  margin: 0 auto 44px;
   border: 1px solid var(--line);
   overflow: hidden;
   background: var(--panel);
-  /* 固定高度横幅：全宽 + 贴底裁切，正文不会被图顶出屏幕 */
-  height: clamp(300px, 52vh, 520px);
+  /* 固定高度 + 贴底裁切：正文不会被图顶出屏幕 */
+  height: clamp(280px, 46vh, 460px);
 }
 .post__cover img {
   width: 100%;
@@ -918,11 +963,22 @@ body.polar-day .hero {
   filter: grayscale(0.15) contrast(1.05) brightness(0.9);
 }
 
+/* 封面从首页卡片滑过来时，标题与正文随后淡入，接住这一下 */
+.post--entering .post__head,
+.post--entering .prose,
+.post--entering .post__foot {
+  animation: post-enter 560ms var(--ease) 90ms both;
+}
+@keyframes post-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* 正文：可读性是底线 */
 .prose {
   max-width: var(--measure);
   margin: 0 auto;
-  font-size: 17px;
+  font-size: var(--prose-size);
   line-height: 1.85;
   color: rgba(226, 232, 240, 0.94);
   overflow-wrap: break-word;
@@ -1053,15 +1109,13 @@ body.polar-day .prose-table tbody tr:hover { background: rgba(23, 38, 53, 0.035)
   border-color: var(--cold);
   background: rgba(255, 255, 255, 0.12);
 }
-.code-copy.is-done {
-  opacity: 1;
-  color: #7ee0a8;
-  border-color: rgba(126, 224, 168, 0.55);
-}
+/* 结果反馈要压过 hover 的冷色，否则鼠标还停在按钮上时看不到红色 */
+.code-copy.is-done,
 .code-copy.is-failed {
   opacity: 1;
   color: var(--signal);
   border-color: var(--signal-dim);
+  background: rgba(255, 69, 58, 0.14);
 }
 body.polar-day .code-copy {
   color: rgba(23, 38, 53, 0.78);
@@ -1074,12 +1128,19 @@ body.polar-day .code-copy:focus-visible {
   background: rgba(23, 38, 53, 0.1);
   border-color: var(--cold);
 }
-body.polar-day .code-copy.is-done {
-  color: #1c7a4c;
-  border-color: rgba(28, 122, 76, 0.5);
+body.polar-day .code-copy.is-done,
+body.polar-day .code-copy.is-failed {
+  color: var(--signal);
+  border-color: var(--signal-dim);
+  background: rgba(195, 54, 45, 0.13);
 }
 
 /* 窄屏：按钮收成图标，别抢占本来就紧张的一行宽度；结果仍要看得见 */
+@media (max-width: 900px) {
+  .post__md .post__md-label { display: none; }
+  .post__md.is-done .post__md-label,
+  .post__md.is-failed .post__md-label { display: inline; }
+}
 @media (max-width: 640px) {
   .code-copy {
     min-height: 28px;
@@ -1088,6 +1149,7 @@ body.polar-day .code-copy.is-done {
   .code-copy .code-copy__label { display: none; }
   .code-copy.is-done .code-copy__label,
   .code-copy.is-failed .code-copy__label { display: inline; }
+  .post__actions { gap: 6px; }
 }
 
 /* 桌面：两三列表格就待在正文列宽里，行不会被拉成一排空旷的格子；

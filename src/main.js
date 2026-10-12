@@ -199,6 +199,9 @@ function renderHome() {
     reticle: true,
   })
 
+  /* 点卡片进文章时，记下这张封面此刻在屏幕上的位置，供文章页做衔接动画 */
+  app.querySelector('#posts')?.addEventListener('click', rememberCoverRect)
+
   stagger('.card', 90, app)
   initFadeIn(app)
   initViewport(app)
@@ -213,7 +216,7 @@ function renderHome() {
 /* ------------------------------------------------------------
    文章页
 ------------------------------------------------------------ */
-function renderPost(slug) {
+function renderPost(slug, flipFrom) {
   const post = getPost(slug)
   if (!post) {
     app.innerHTML = `
@@ -234,17 +237,28 @@ function renderPost(slug) {
     <article class="post shell">
       <div class="post__toolbar">
         <a class="post__back" href="#/">← 返回观测窗</a>
-        <button
-          class="polar-toggle"
-          id="polar-toggle"
-          type="button"
-          aria-pressed="false"
-          aria-label="切换极昼模式"
-          title="切换极昼模式"
-        >
-          <span class="polar-toggle__sun" aria-hidden="true"></span>
-          <span class="polar-toggle__label">${polarEnabled ? '极昼' : '极夜'}</span>
-        </button>
+        <div class="post__actions">
+          <button
+            class="post__md"
+            id="post-md"
+            type="button"
+            aria-label="复制这篇的 Markdown 原文"
+            title="复制 Markdown 原文"
+          >
+            ${COPY_ICON}<span class="post__md-label">复制 Markdown</span>
+          </button>
+          <button
+            class="polar-toggle"
+            id="polar-toggle"
+            type="button"
+            aria-pressed="false"
+            aria-label="切换极昼模式"
+            title="切换极昼模式"
+          >
+            <span class="polar-toggle__sun" aria-hidden="true"></span>
+            <span class="polar-toggle__label">${polarEnabled ? '极昼' : '极夜'}</span>
+          </button>
+        </div>
       </div>
       <div class="post__head">
         <h1 class="post__title">${esc(post.title)}</h1>
@@ -269,7 +283,9 @@ function renderPost(slug) {
   document.body.appendChild(badge)
   createDroplet(badge, { src: DROPLET, size: 36, reach: 7, float: 4, trail: 3, compact: true })
   enhanceCodeBlocks(app)
+  mountCopyMarkdown(post)
   mountPolarMode()
+  playCoverFlip(app.querySelector('.post__cover'), flipFrom)
 }
 
 /* ------------------------------------------------------------
@@ -343,6 +359,100 @@ function enhanceCodeBlocks(root) {
 }
 
 /* ------------------------------------------------------------
+   复制 Markdown：把当前这篇的原文交还读者
+------------------------------------------------------------ */
+function markdownSource(post) {
+  const body = post.body.trim()
+  return `# ${post.title}\n\n${body}\n`
+}
+
+function mountCopyMarkdown(post) {
+  const button = document.getElementById('post-md')
+  if (!button) return
+
+  let timer = 0
+  const paint = (state) => {
+    const text = state === 'done' ? '已复制' : state === 'failed' ? '复制失败' : '复制 Markdown'
+    button.classList.toggle('is-done', state === 'done')
+    button.classList.toggle('is-failed', state === 'failed')
+    button.innerHTML = `${state === 'done' ? CHECK_ICON : COPY_ICON}<span class="post__md-label">${text}</span>`
+  }
+
+  button.addEventListener('click', async () => {
+    const ok = await writeClipboard(markdownSource(post))
+    paint(ok ? 'done' : 'failed')
+    clearTimeout(timer)
+    timer = window.setTimeout(() => paint('idle'), 1800)
+  })
+
+  paint('idle')
+}
+
+/* ------------------------------------------------------------
+   卡片 → 文章封面：FLIP 衔接
+   点击时在首页量下卡片封面的屏幕位置，文章渲染后先把它反推回那个位置，
+   再放开过渡滑到终点。省的是一进文章页画面“啪”地另起一屏。
+------------------------------------------------------------ */
+let coverFlipSource = null
+
+function rectOf(el) {
+  const r = el.getBoundingClientRect()
+  return { left: r.left, top: r.top, width: r.width, height: r.height }
+}
+
+function rememberCoverRect(event) {
+  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  const link = event.target.closest?.('a.card')
+  if (!link) return
+  const cover = link.querySelector('.card__cover')
+  coverFlipSource = cover ? rectOf(cover) : null
+}
+
+function playCoverFlip(figure, from) {
+  if (!figure || !from) return
+  if (!from.width || !from.height) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+  const to = rectOf(figure)
+  if (!to.width || !to.height) return
+
+  const scaleX = from.width / to.width
+  const scaleY = from.height / to.height
+  /* 两端体型差太多时（比如从卡片的窄条铺成正文宽的横幅），补间会更晃眼，干脆不补 */
+  if (scaleX < 0.45 || scaleX > 2.4 || scaleY < 0.45 || scaleY > 2.4) return
+
+  const article = figure.closest('.post')
+  article?.classList.add('post--entering')
+
+  figure.style.transformOrigin = 'top left'
+  figure.style.transition = 'none'
+  figure.style.transform = `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${scaleX}, ${scaleY})`
+
+  const settle = () => {
+    figure.style.transition = ''
+    figure.style.transform = ''
+    figure.style.transformOrigin = ''
+    article?.classList.remove('post--entering')
+  }
+  figure.addEventListener(
+    'transitionend',
+    (event) => {
+      if (event.propertyName === 'transform') settle()
+    },
+    { once: true },
+  )
+  /* 补间被跳过（起点终点重合）或事件丢失时，兜底收回内联样式 */
+  window.setTimeout(settle, 900)
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      figure.style.transition = 'transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1)'
+      figure.style.transform = 'none'
+    })
+  })
+}
+
+/* ------------------------------------------------------------
    路由
 ------------------------------------------------------------ */
 const POLAR_KEY = 'droplet:polar-day'
@@ -403,10 +513,12 @@ function route() {
   const hash = location.hash.replace(/^#\/?/, '')
   const m = /^post\/(.+)$/.exec(hash)
   atHome = !m
+  const flipFrom = coverFlipSource
+  coverFlipSource = null
 
   if (m) {
     window.scrollTo({ top: 0, behavior: 'instant' })
-    renderPost(decodeURIComponent(m[1]))
+    renderPost(decodeURIComponent(m[1]), flipFrom)
     return
   }
 

@@ -1,0 +1,13 @@
+node_modules
+dist
+.DS_Store
+*.log
+.workbuddy
+.inkstone-auth.json
+.inkstone-clients.json
+.scratch/
+
+# 根目录的调试截图，不进仓库
+/chk-*.png
+/dbg*.png
+/verify-*.png

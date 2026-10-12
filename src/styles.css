@@ -819,6 +819,8 @@ body.polar-day .hero {
   font-weight: 600;
   color: var(--ink-strong);
   line-height: 1.4;
+  /* 窄屏三列里一列只有一百来像素，长词（比如 mattpocock/skills）宁可断开也别顶出框 */
+  overflow-wrap: anywhere;
 }
 
 .card__excerpt {
@@ -826,6 +828,7 @@ body.polar-day .hero {
   color: var(--ink-dim);
   font-size: 14px;
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .tags { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1140,6 +1143,27 @@ body.polar-day .code-copy.is-failed {
   .post__md .post__md-label { display: none; }
   .post__md.is-done .post__md-label,
   .post__md.is-failed .post__md-label { display: inline; }
+
+  /* 窄屏的右下角水滴是浮在正文上的：缩小、降不透明度，
+     往下读的时候整个收起来，免得一直压着字 */
+  .post__badge {
+    right: 10px;
+    bottom: 10px;
+    width: 52px;
+    height: 52px;
+    opacity: 0.55;
+    transition:
+      opacity 0.3s var(--ease),
+      transform 0.34s var(--ease);
+  }
+  .post__badge:hover,
+  .post__badge:focus-visible,
+  .post__badge:active { opacity: 1; }
+  .post__badge.is-tucked {
+    opacity: 0;
+    transform: translateY(16px);
+    pointer-events: none;
+  }
 }
 @media (max-width: 640px) {
   .code-copy {

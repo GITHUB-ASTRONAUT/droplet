@@ -115,7 +115,7 @@ function aboutHTML() {
         <span class="corner tl"></span><span class="corner tr"></span>
         <span class="corner bl"></span><span class="corner br"></span>
         <div class="frame">
-          <img src="${asset('Cover.jpg')}" alt="Droplet 封面" loading="lazy" decoding="async" />
+          <img src="${asset('Cover2.jpg')}" alt="Droplet 封面" loading="lazy" decoding="async" />
           <i class="sheen" aria-hidden="true"></i>
         </div>
         <figcaption><span>COVER // 在轨记录</span><span>REC</span></figcaption>
@@ -188,7 +188,7 @@ function footerHTML() {
 /* ------------------------------------------------------------
    首页装配
 ------------------------------------------------------------ */
-function renderHome() {
+function renderHome(returnFrom) {
   app.innerHTML = `${heroHTML()}${aboutHTML()}${postsHTML()}${footerHTML()}`
 
   const mount = app.querySelector('#droplet-mount')
@@ -211,6 +211,12 @@ function renderHome() {
   initAnimatedText(app)
   initTilt('.about__art .frame', { max: 8, lift: 10 }, app)
   initFloat('.about__art .frame', { amp: 8 }, app)
+
+  /* 先落回离开时的滚动位置，再让封面从文章页的位置滑回卡片里 */
+  requestAnimationFrame(() => {
+    if (homeScroll > 0) window.scrollTo({ top: homeScroll, behavior: 'instant' })
+    playCardReturn(returnFrom)
+  })
 }
 
 /* ------------------------------------------------------------
@@ -219,6 +225,7 @@ function renderHome() {
 function renderPost(slug, flipFrom) {
   const post = getPost(slug)
   if (!post) {
+    currentSlug = null
     app.innerHTML = `
       <section class="post shell">
         <a class="post__back" href="#/">← 返回观测窗</a>
@@ -229,6 +236,7 @@ function renderPost(slug, flipFrom) {
       </section>`
     return
   }
+  currentSlug = slug
 
   app.innerHTML = `
     <div class="polar-sky" aria-hidden="true">
@@ -281,11 +289,40 @@ function renderPost(slug, flipFrom) {
   badge.className = 'post__badge'
   badge.setAttribute('aria-label', '回到首页')
   document.body.appendChild(badge)
-  createDroplet(badge, { src: DROPLET, size: 36, reach: 7, float: 4, trail: 3, compact: true })
+  const narrow = window.matchMedia('(max-width: 900px)').matches
+  createDroplet(badge, {
+    src: DROPLET,
+    size: narrow ? 26 : 36,
+    reach: narrow ? 5 : 7,
+    float: narrow ? 3 : 4,
+    trail: 3,
+    compact: true,
+  })
+  mountBadgeTuck(badge)
   enhanceCodeBlocks(app)
   mountCopyMarkdown(post)
   mountPolarMode()
   playCoverFlip(app.querySelector('.post__cover'), flipFrom)
+}
+
+/* ------------------------------------------------------------
+   窄屏的右下角水滴
+   手机上它是浮在正文上面的，一直亮着就会压住字。往下读的时候收起来，
+   往上滑（也就是要往回走的时候）再露头。
+------------------------------------------------------------ */
+let badgeTuck = null
+
+function mountBadgeTuck(badge) {
+  if (!window.matchMedia('(max-width: 900px)').matches) return
+
+  let last = window.scrollY
+  badgeTuck = () => {
+    const y = window.scrollY
+    if (Math.abs(y - last) < 6) return
+    badge.classList.toggle('is-tucked', y > last && y > 80)
+    last = y
+  }
+  window.addEventListener('scroll', badgeTuck, { passive: true })
 }
 
 /* ------------------------------------------------------------
@@ -394,6 +431,7 @@ function mountCopyMarkdown(post) {
    再放开过渡滑到终点。省的是一进文章页画面“啪”地另起一屏。
 ------------------------------------------------------------ */
 let coverFlipSource = null
+let currentSlug = null
 
 function rectOf(el) {
   const r = el.getBoundingClientRect()
@@ -452,6 +490,58 @@ function playCoverFlip(figure, from) {
   })
 }
 
+/* 反过来走一遍：文章页封面滑回它原来那张卡片里 */
+function playCardReturn(from) {
+  if (!from) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+  const href = `#/post/${encodeURIComponent(from.slug)}`
+  const card = [...app.querySelectorAll('a.card')].find((a) => a.getAttribute('href') === href)
+  if (!card) return
+
+  const cover = card.querySelector('.card__cover')
+  if (!cover) return
+
+  const to = rectOf(cover)
+  if (!to.width || !to.height) return
+
+  /* 卡片不在视野里（比如直接输入网址打开的文章）就别让画面飞过来，老实渲染就好 */
+  if (to.top > window.innerHeight || to.top + to.height < 0) return
+
+  const scaleX = from.rect.width / to.width
+  const scaleY = from.rect.height / to.height
+  if (scaleX < 0.45 || scaleX > 2.4 || scaleY < 0.45 || scaleY > 2.4) return
+
+  /* 卡片本体先别渐入，不然飞在半路的封面会跟着一起淡 */
+  card.classList.remove('fade')
+  cover.style.transformOrigin = 'top left'
+  cover.style.transition = 'none'
+  cover.style.zIndex = '4'
+  cover.style.transform = `translate(${from.rect.left - to.left}px, ${from.rect.top - to.top}px) scale(${scaleX}, ${scaleY})`
+
+  const settle = () => {
+    cover.style.transition = ''
+    cover.style.transform = ''
+    cover.style.transformOrigin = ''
+    cover.style.zIndex = ''
+  }
+  cover.addEventListener(
+    'transitionend',
+    (event) => {
+      if (event.propertyName === 'transform') settle()
+    },
+    { once: true },
+  )
+  window.setTimeout(settle, 900)
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      cover.style.transition = 'transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1)'
+      cover.style.transform = 'none'
+    })
+  })
+}
+
 /* ------------------------------------------------------------
    路由
 ------------------------------------------------------------ */
@@ -497,10 +587,15 @@ function mountPolarMode() {
 function cleanup() {
   threeBody?.destroy()
   threeBody = null
+  currentSlug = null
   document.body.classList.remove('polar-day')
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.setAttribute('content', '#000000')
   document.querySelectorAll('.post__badge').forEach((n) => n.remove())
+  if (badgeTuck) {
+    window.removeEventListener('scroll', badgeTuck)
+    badgeTuck = null
+  }
 }
 
 /* 离开观测窗时记下停在哪，返回时回到原处（文章页仍从顶部开始） */
@@ -508,6 +603,16 @@ let homeScroll = 0
 let atHome = true
 
 function route() {
+  /* 离开文章页时记下封面此刻停在哪，回到首页就从那里滑回卡片 */
+  let returnFrom = null
+  if (!atHome && currentSlug) {
+    const cover = app.querySelector('.post__cover')
+    const r = cover?.getBoundingClientRect()
+    if (r?.width && r.height && r.bottom > 0 && r.top < window.innerHeight) {
+      returnFrom = { slug: currentSlug, rect: rectOf(cover) }
+    }
+  }
+
   if (atHome) homeScroll = window.scrollY
   cleanup()
   const hash = location.hash.replace(/^#\/?/, '')
@@ -522,11 +627,7 @@ function route() {
     return
   }
 
-  renderHome()
-  if (homeScroll > 0) {
-    const y = homeScroll
-    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }))
-  }
+  renderHome(returnFrom)
 }
 
 initStarfield()

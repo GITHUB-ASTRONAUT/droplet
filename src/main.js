@@ -334,7 +334,7 @@ function route() {
   atHome = !m
 
   if (m) {
-    window.scrollTo({ top: 0, behavior: 'auto' })
+    window.scrollTo({ top: 0, behavior: 'instant' })
     renderPost(decodeURIComponent(m[1]))
     return
   }
@@ -342,7 +342,7 @@ function route() {
   renderHome()
   if (homeScroll > 0) {
     const y = homeScroll
-    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }))
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }))
   }
 }
 

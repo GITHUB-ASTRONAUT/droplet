@@ -214,7 +214,7 @@ function renderHome(returnFrom) {
 
   /* 先落回离开时的滚动位置，再让封面从文章页的位置滑回卡片里 */
   requestAnimationFrame(() => {
-    if (homeScroll > 0) window.scrollTo({ top: homeScroll, behavior: 'instant' })
+    window.scrollTo({ top: homeScroll, behavior: 'instant' })
     playCardReturn(returnFrom)
   })
 }
@@ -288,6 +288,11 @@ function renderPost(slug, flipFrom) {
   badge.href = '#/'
   badge.className = 'post__badge'
   badge.setAttribute('aria-label', '回到首页')
+  /* 这颗水滴是"回首页并置顶"：落点固定首屏，不回到离开时的位置 */
+  badge.addEventListener('click', (event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    returnToTop = true
+  })
   document.body.appendChild(badge)
   const narrow = window.matchMedia('(max-width: 900px)').matches
   createDroplet(badge, {
@@ -601,11 +606,16 @@ function cleanup() {
 /* 离开观测窗时记下停在哪，返回时回到原处（文章页仍从顶部开始） */
 let homeScroll = 0
 let atHome = true
+/* 由右下角水滴徽章触发的返回：回首页并置顶，而不是回到离开时的位置 */
+let returnToTop = false
 
 function route() {
+  const topOnReturn = returnToTop
+  returnToTop = false
+
   /* 离开文章页时记下封面此刻停在哪，回到首页就从那里滑回卡片 */
   let returnFrom = null
-  if (!atHome && currentSlug) {
+  if (!atHome && currentSlug && !topOnReturn) {
     const cover = app.querySelector('.post__cover')
     const r = cover?.getBoundingClientRect()
     if (r?.width && r.height && r.bottom > 0 && r.top < window.innerHeight) {
@@ -614,6 +624,7 @@ function route() {
   }
 
   if (atHome) homeScroll = window.scrollY
+  if (topOnReturn) homeScroll = 0
   cleanup()
   const hash = location.hash.replace(/^#\/?/, '')
   const m = /^post\/(.+)$/.exec(hash)

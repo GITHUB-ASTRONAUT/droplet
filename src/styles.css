@@ -1102,7 +1102,7 @@ body.polar-day .prose-table tbody tr:hover { background: rgba(23, 38, 53, 0.035)
   cursor: pointer;
   opacity: 0.8;
   transition: opacity 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease),
-    background 0.25s var(--ease);
+    background 0.25s var(--ease), transform 0.25s var(--ease);
 }
 .code-copy__icon { display: block; flex: none; }
 .code-copy:hover,
@@ -1136,6 +1136,29 @@ body.polar-day .code-copy.is-failed {
   color: var(--signal);
   border-color: var(--signal-dim);
   background: rgba(195, 54, 45, 0.13);
+}
+
+/* 有真鼠标的设备上，按钮默认隐形，免得它一直压在代码第一行上；
+   指针进到代码块里、或者键盘按 Tab 聚焦到它时才浮出来。
+   触屏没有 hover，这条媒体查询不生效，按钮保持常显，不用猜也能点到。 */
+@media (hover: hover) and (pointer: fine) {
+  .code-block > pre { transition: border-color 0.25s var(--ease); }
+  .code-block:hover > pre { border-color: var(--line-strong); }
+
+  .code-block .code-copy {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+  }
+  .code-block:hover .code-copy,
+  .code-block:focus-within .code-copy,
+  .code-copy:focus-visible,
+  .code-copy.is-done,
+  .code-copy.is-failed {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
 }
 
 /* 窄屏：按钮收成图标，别抢占本来就紧张的一行宽度；结果仍要看得见 */
@@ -1244,6 +1267,11 @@ body.polar-day .prose {
 }
 body.polar-day .prose code {
   background: rgba(23, 38, 53, 0.07);
+}
+/* 极昼下上面这条会把 .prose pre code 的清零覆盖掉（选择器更重），
+   于是 pre 里的 code 又长出半透明底色，按行画成一截截灰条。这里压回去。 */
+body.polar-day .prose pre code {
+  background: none;
 }
 body.polar-day .prose pre {
   background: #edf3f6;

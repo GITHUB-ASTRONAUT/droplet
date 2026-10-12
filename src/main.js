@@ -145,7 +145,7 @@ function postsHTML() {
     .map(
       (p) => `
     <a
-      class="card${p.order < 100 ? ' card--panel' : ''}"
+      class="card${p.panel ? ' card--panel' : ''}"
       href="#/post/${encodeURIComponent(p.slug)}"
       ${p.coverAspect ? `style="--cover-aspect:${p.coverAspect}"` : ''}
     >
@@ -243,7 +243,7 @@ function renderPost(slug) {
           title="切换极昼模式"
         >
           <span class="polar-toggle__sun" aria-hidden="true"></span>
-          <span>极昼</span>
+          <span class="polar-toggle__label">${polarEnabled ? '极昼' : '极夜'}</span>
         </button>
       </div>
       <div class="post__head">
@@ -289,6 +289,9 @@ function applyPolarMode(next) {
   const button = document.getElementById('polar-toggle')
   const meta = document.querySelector('meta[name="theme-color"]')
   button?.setAttribute('aria-pressed', String(next))
+  // 按钮显示的是当前所在的状态：默认极夜，点亮后才是极昼
+  const label = button?.querySelector('.polar-toggle__label')
+  if (label) label.textContent = next ? '极昼' : '极夜'
   if (meta) meta.setAttribute('content', next ? '#dfe8ee' : '#000000')
   threeBody?.setActive(next)
 }

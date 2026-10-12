@@ -10,8 +10,12 @@
  *   tags:  [标签A, 标签B]
  *   cover: 图片文件名（位于 images/，可留空）
  *   coverAspect: 可选，封面宽高比；用于懒加载前预留稳定版位
- *   order: 同日期时的排序权重，越小越靠前（列表主排序 = date 倒序）
+ *   panel: 拼接组名；同一 panel 的卡片排在同一行，按 order 从左到右拼成一幅画
+ *   order: 组内拼接序号，越小越靠左（同日期时的排序权重也是它）
  *   excerpt: 可选，缺省从正文截取
+ *
+ * 排序规则：拼接组以“行”为单位整体排序 —— 行与行之间按组内最新日期倒序，
+ * 行内按 order 升序。这样最新的一行在最前面，同时三张素材仍然是完整的一幅画。
  */
 
 import MarkdownIt from 'markdown-it'
@@ -76,11 +80,31 @@ const posts = Object.entries(modules)
         ? Number(data.coverAspect)
         : null,
       order: Number.isFinite(Number(data.order)) ? Number(data.order) : 100,
+      panel: data.panel || '',
       excerpt: data.excerpt || makeExcerpt(body),
       body,
     }
   })
-  .sort((a, b) => (a.date === b.date ? a.order - b.order : a.date < b.date ? 1 : -1))
+
+/* 行 = 一个拼接组（或单张卡）。行内卡片共享同一个行号，保证行不会被拆开 */
+const rowOf = (p) => p.panel || `\u0000${p.slug}`
+
+const rows = new Map()
+for (const p of posts) {
+  const row = rows.get(rowOf(p)) || { date: '', order: Infinity }
+  if (p.date > row.date) row.date = p.date
+  if (p.order < row.order) row.order = p.order
+  rows.set(rowOf(p), row)
+}
+
+/* 行与行之间：组内最新日期倒序，同期再按组内最小 order */
+const rowRank = new Map(
+  [...rows.entries()]
+    .sort(([, a], [, b]) => (a.date === b.date ? a.order - b.order : a.date < b.date ? 1 : -1))
+    .map(([key], i) => [key, i]),
+)
+
+posts.sort((a, b) => rowRank.get(rowOf(a)) - rowRank.get(rowOf(b)) || a.order - b.order)
 
 export function getAllPosts() {
   return posts

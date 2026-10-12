@@ -110,6 +110,11 @@ img { max-width: 100%; display: block; }
   height: 12px;
   border: 1px solid currentColor;
   border-radius: 50%;
+  /* 极夜：太阳缺席，只剩一圈冷色轮廓 */
+  box-shadow: inset 0 0 0 transparent;
+}
+/* 极昼：暖色回填，三个太阳点亮 */
+body.polar-day .polar-toggle__sun {
   box-shadow: inset 3px 0 0 rgba(255, 202, 92, 0.85);
 }
 

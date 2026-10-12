@@ -268,7 +268,78 @@ function renderPost(slug) {
   badge.setAttribute('aria-label', '回到首页')
   document.body.appendChild(badge)
   createDroplet(badge, { src: DROPLET, size: 36, reach: 7, float: 4, trail: 3, compact: true })
+  enhanceCodeBlocks(app)
   mountPolarMode()
+}
+
+/* ------------------------------------------------------------
+   代码块复制：主流博客的通用配件，读者不用再手动选中
+------------------------------------------------------------ */
+const COPY_ICON =
+  '<svg class="code-copy__icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>'
+const CHECK_ICON =
+  '<svg class="code-copy__icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'
+
+async function writeClipboard(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // 非安全上下文或权限被拒时，退回旧接口
+  }
+  const stub = document.createElement('textarea')
+  stub.value = text
+  stub.setAttribute('readonly', '')
+  stub.style.position = 'fixed'
+  stub.style.top = '-1000px'
+  stub.style.opacity = '0'
+  document.body.appendChild(stub)
+  stub.select()
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  }
+  stub.remove()
+  return ok
+}
+
+function enhanceCodeBlocks(root) {
+  root.querySelectorAll('.prose pre').forEach((pre) => {
+    if (pre.closest('.code-block')) return
+
+    const wrap = document.createElement('div')
+    wrap.className = 'code-block'
+    pre.before(wrap)
+    wrap.appendChild(pre)
+
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'code-copy'
+    button.setAttribute('aria-label', '复制代码')
+    button.title = '复制代码'
+
+    let timer = 0
+    const paint = (state) => {
+      const text = state === 'done' ? '已复制' : state === 'failed' ? '复制失败' : '复制'
+      button.classList.toggle('is-done', state === 'done')
+      button.classList.toggle('is-failed', state === 'failed')
+      button.innerHTML = `${state === 'done' ? CHECK_ICON : COPY_ICON}<span class="code-copy__label">${text}</span>`
+    }
+
+    button.addEventListener('click', async () => {
+      const ok = await writeClipboard(pre.innerText.replace(/\n+$/, ''))
+      paint(ok ? 'done' : 'failed')
+      clearTimeout(timer)
+      timer = window.setTimeout(() => paint('idle'), 1800)
+    })
+
+    paint('idle')
+    wrap.appendChild(button)
+  })
 }
 
 /* ------------------------------------------------------------

@@ -853,6 +853,9 @@ body.polar-day .hero {
    文章页
    ============================================================ */
 .post {
+  /* 极昼天空（.polar-sky）是 #app 里的定位层，正文要自成一层压在它上面 */
+  position: relative;
+  z-index: 1;
   padding-top: clamp(48px, 9vh, 96px);
   padding-bottom: clamp(72px, 12vh, 140px);
 }
@@ -1008,9 +1011,84 @@ body.polar-day .hero {
 }
 .prose-table tbody tr:last-child td { border-bottom: 0; }
 .prose-table tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
-body.polar-day .prose-table { background: rgba(255, 255, 255, 0.5); }
+body.polar-day .prose-table { background: #f1f6f9; }
 body.polar-day .prose-table thead th { background: rgba(23, 38, 53, 0.06); }
 body.polar-day .prose-table tbody tr:hover { background: rgba(23, 38, 53, 0.035); }
+
+/* --- 代码块复制按钮 --- */
+.code-block {
+  position: relative;
+  margin: 1.6em 0;
+}
+.code-block > pre { margin: 0; }
+
+.code-copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid rgba(226, 232, 240, 0.24);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(226, 232, 240, 0.72);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.25s var(--ease), color 0.25s var(--ease), border-color 0.25s var(--ease),
+    background 0.25s var(--ease);
+}
+.code-copy__icon { display: block; flex: none; }
+.code-copy:hover,
+.code-copy:focus-visible {
+  opacity: 1;
+  color: #fff;
+  border-color: var(--cold);
+  background: rgba(255, 255, 255, 0.12);
+}
+.code-copy.is-done {
+  opacity: 1;
+  color: #7ee0a8;
+  border-color: rgba(126, 224, 168, 0.55);
+}
+.code-copy.is-failed {
+  opacity: 1;
+  color: var(--signal);
+  border-color: var(--signal-dim);
+}
+body.polar-day .code-copy {
+  color: rgba(23, 38, 53, 0.78);
+  background: rgba(23, 38, 53, 0.05);
+  border-color: rgba(23, 38, 53, 0.28);
+}
+body.polar-day .code-copy:hover,
+body.polar-day .code-copy:focus-visible {
+  color: #09141f;
+  background: rgba(23, 38, 53, 0.1);
+  border-color: var(--cold);
+}
+body.polar-day .code-copy.is-done {
+  color: #1c7a4c;
+  border-color: rgba(28, 122, 76, 0.5);
+}
+
+/* 窄屏：按钮收成图标，别抢占本来就紧张的一行宽度；结果仍要看得见 */
+@media (max-width: 640px) {
+  .code-copy {
+    min-height: 28px;
+    padding: 0 6px;
+  }
+  .code-copy .code-copy__label { display: none; }
+  .code-copy.is-done .code-copy__label,
+  .code-copy.is-failed .code-copy__label { display: inline; }
+}
 
 /* 桌面：两三列表格就待在正文列宽里，行不会被拉成一排空旷的格子；
    四列以上的宽表允许向两侧对称展开，避免多列被挤成竖条 */

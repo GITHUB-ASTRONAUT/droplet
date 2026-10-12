@@ -268,4 +268,4 @@ Personal Blog/
 - [ ] 接入 inkstone MCP（客户端 + OAuth 已就位，待授权后取文）
 - [ ] oil-motion 水滴真实转身帧序列
 - [ ] 标签归档页
-- [ ] GitHub Pages 部署
+- [x] GitHub Pages 部署 —— https://github-astronaut.github.io/droplet/ （仓库 github.com/GITHUB-ASTRONAUT/droplet，push 到 main 自动构建）

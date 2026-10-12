@@ -1012,11 +1012,16 @@ body.polar-day .prose-table { background: rgba(255, 255, 255, 0.5); }
 body.polar-day .prose-table thead th { background: rgba(23, 38, 53, 0.06); }
 body.polar-day .prose-table tbody tr:hover { background: rgba(23, 38, 53, 0.035); }
 
-/* 宽表在桌面上比正文略宽，避免多列被挤成竖条；窄屏保持 100% 并横向滚动 */
+/* 桌面：两三列表格就待在正文列宽里，行不会被拉成一排空旷的格子；
+   四列以上的宽表允许向两侧对称展开，避免多列被挤成竖条 */
 @media (min-width: 1080px) {
-  .prose-table { width: min(880px, calc(100vw - 160px)); margin-inline: auto; }
+  .prose-table:has(th:nth-child(4)) {
+    --wide: min(880px, calc(100vw - 160px));
+    width: var(--wide);
+    margin-inline: calc((100% - var(--wide)) / 2);
+  }
 }
-/* 四列以上的宽表在窄屏保持可用列宽，改为容器内横向滚动 */
+/* 窄屏放不下多列时保持可用列宽，改为容器内横向滚动 */
 .prose-table:has(th:nth-child(4)) table { min-width: 720px; }
 
 .post__foot {

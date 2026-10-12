@@ -7,7 +7,9 @@
  * 运动只来自两个地方：
  *   1. 恒定的缓慢漂移（船在走，星在退），不跟鼠标；
  *   2. 偶尔一颗流星划过，打破静止。
- * 滚动另外带一点纵深。鼠标不再驱动任何东西——跟着指针动的星空看着别扭。
+ *
+ * 星空是一层钉在视口上的幕布：不跟鼠标，也不跟滚动。以前给星点挂了 2% 的滚动量，
+ * 快速拖动时整片星会平移一下（还会在上下边界跳），看着像背景粘着页面跑，已经去掉。
  */
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -58,9 +60,6 @@ export function initStarfield() {
     meteors = []
     nextMeteorAt = METEOR_MIN_GAP + Math.random() * (METEOR_MAX_GAP - METEOR_MIN_GAP)
   }
-
-  let scrollY = window.scrollY
-  window.addEventListener('scroll', () => { scrollY = window.scrollY }, { passive: true })
 
   /* --- 流星：一段带亮头的短划线，头尾各淡一次 --- */
   function spawnMeteor(t) {
@@ -116,9 +115,9 @@ export function initStarfield() {
   function draw(t, dt) {
     ctx.clearRect(0, 0, W, H)
     for (const s of stars) {
-      /* 恒定漂移：近处星动得多；滚动另外带一点纵深 */
+      /* 恒定漂移：近处星动得多。位置只由时间和深度决定，不读滚动量 */
       const px = (((s.x + t * DRIFT_X * s.z) % W) + W) % W
-      const py = s.y + t * DRIFT_Y * s.z + scrollY * 0.02 * s.z
+      const py = s.y + t * DRIFT_Y * s.z
       const y = ((py % H) + H) % H
 
       const twinkle = 0.55 + 0.45 * Math.sin(t * s.ts + s.tw)

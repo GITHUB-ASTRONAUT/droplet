@@ -322,13 +322,28 @@ function cleanup() {
   document.querySelectorAll('.post__badge').forEach((n) => n.remove())
 }
 
+/* 离开观测窗时记下停在哪，返回时回到原处（文章页仍从顶部开始） */
+let homeScroll = 0
+let atHome = true
+
 function route() {
+  if (atHome) homeScroll = window.scrollY
   cleanup()
   const hash = location.hash.replace(/^#\/?/, '')
   const m = /^post\/(.+)$/.exec(hash)
-  window.scrollTo({ top: 0, behavior: 'auto' })
-  if (m) renderPost(decodeURIComponent(m[1]))
-  else renderHome()
+  atHome = !m
+
+  if (m) {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+    renderPost(decodeURIComponent(m[1]))
+    return
+  }
+
+  renderHome()
+  if (homeScroll > 0) {
+    const y = homeScroll
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'auto' }))
+  }
 }
 
 initStarfield()
